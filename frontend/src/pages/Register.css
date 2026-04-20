@@ -1,0 +1,197 @@
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.register-page, .login-page {
+  min-height: 100vh;
+  background: #9ed6df !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.brand {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.star {
+  font-size: 28px;
+  color: rgba(17, 24, 39, 0.25);
+  margin-bottom: 24px;
+}
+
+.register-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 400px;
+  padding: 26px 24px 24px;
+  border-radius: 18px;
+  box-shadow:
+    0 22px 40px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.register-card label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.register-card input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.register-card input:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.24);
+}
+
+/* Custom file upload */
+.file-input {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.file-input input {
+  display: none;
+}
+
+.file-input label {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #4b5563;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.file-input label:hover {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+}
+
+.register-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 999px;
+  border: none;
+  background: #111827; /* Removed linear gradient */
+  color: #f9fafb;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  margin-top: 18px;
+}
+
+.register-btn:hover {
+  background: var(--secondary-color);
+  transform: translateY(-1px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);
+}
+
+/* Error text spacing above button */
+.register-card .error {
+  margin-top: -10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444; /* Clean medical red */
+  text-align: left;
+}
+
+.register-card .error.global-error {
+  text-align: center;
+  background: #fef2f2;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #fee2e2;
+  margin-top: 10px;
+}
+
+/* React Select styling for city dropdown */
+.pt-select__control {
+  border-radius: 999px !important;
+  border: 1px solid #d1d5db !important;
+  min-height: 42px;
+  box-shadow: none !important;
+  background-color: #f9fafb !important;
+}
+
+.pt-select__control--is-focused {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.24) !important;
+  background-color: #ffffff !important;
+}
+
+.pt-select__value-container {
+  padding: 0 16px !important;
+}
+
+.pt-select__placeholder,
+.pt-select__single-value {
+  color: #4b5563 !important;
+  font-size: 14px;
+}
+
+.pt-select__indicator-separator {
+  display: none;
+}
+
+.pt-select__menu {
+  margin-top: 6px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.18) !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  overflow: hidden;
+  z-index: 30;
+}
+
+.pt-select__option {
+  font-size: 14px;
+}
+
+.pt-select__option--is-focused {
+  background-color: #eff6ff !important;
+  color: #111827 !important;
+}
+
+.pt-select__option--is-selected {
+  background-color: #2563eb !important;
+  color: #f9fafb !important;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .brand {
+    font-size: 22px;
+  }
+
+  .register-card {
+    padding: 20px;
+  }
+}

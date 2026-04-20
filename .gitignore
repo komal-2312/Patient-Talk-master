@@ -1,0 +1,57 @@
+# ---------------------------------
+# General & System Files
+# ---------------------------------
+# Dependency directories
+node_modules/
+
+
+??UPLOADS 
+uploads/
+.uploads/
+/uploads/
+/uploads/*
+uploads/**/*
+*/uploads
+**/*/uploads
+uploads/*/*
+
+
+# OS specific files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# ---------------------------------
+# Security (VERY IMPORTANT)
+# ---------------------------------
+# Ignore all environment files to prevent leaking keys/passwords
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+
+# ---------------------------------
+# Backend (Node.js)
+# ---------------------------------
+# Optional: if you use a build step for backend
+dist/
+build/
+coverage/
+
+# ---------------------------------
+# Frontend (Vite/React)
+# ---------------------------------
+# Vite build output
+dist/
+dist-ssr/
+
+# Editor directories and files
+.eslintcache
+
+# Vite temp files
+*.timestamp-*
