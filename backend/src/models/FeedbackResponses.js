@@ -56,6 +56,47 @@ const feedbackResponseSchema = new mongoose.Schema(
 
     responses: [responseSchema], // 🔥 ALL ANSWERS HERE
 
+    complaintId: {
+      type: String,
+      unique: true,
+      required: true,
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "Pending",
+        "Under Review",
+        "Assigned",
+        "In Progress",
+        "Resolved",
+        "Closed",
+        "Rejected",
+      ],
+      default: "Pending",
+    },
+
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High", "Critical"],
+      default: "Medium",
+    },
+
+    departmentAssigned: {
+      type: String,
+    },
+
+    adminRemarks: {
+      type: String,
+      default: "",
+    },
+
+    isValidComplaint: {
+      type: Boolean,
+      default: true,
+    },
+
     submittedAt: {
       type: Date,
       default: Date.now,

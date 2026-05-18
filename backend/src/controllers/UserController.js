@@ -36,11 +36,6 @@ async function getFeedbackByIdforUser(req, res) {
 async function submitFeedbackForUser(req, res) {
     try {
 
-
-
-
-
-
         const feedbackId = req.params.id;
         const responses = JSON.parse(req.body.responses); // multipart
 
@@ -78,6 +73,8 @@ async function submitFeedbackForUser(req, res) {
 
         const token = crypto.randomBytes(32).toString("hex");
 
+        const complaintId = `CMP-${Date.now()}`;
+
         const tokenExpiry = new Date();
         tokenExpiry.setDate(tokenExpiry.getDate() + 7); // valid for 7 days
 
@@ -85,10 +82,14 @@ async function submitFeedbackForUser(req, res) {
         await FEEDBACK_RESPONSE.create({
             feedbackId: feedback._id,
             hospitalId: feedback.hospitalId,
+            complaintId: complaintId,
+            status: "Pending",
+            departmentAssigned: feedback.feedback_name,
+            priority: "Medium",
             responses: formattedResponses,
             accessToken: token,
             tokenExpiresAt: tokenExpiry,
-
+            
         });
 
         logFeedbackSubmission({ feedbackId: feedback._id, hospitalId: feedback.hospitalId });
@@ -96,6 +97,8 @@ async function submitFeedbackForUser(req, res) {
         return res.status(200).json({
             success: true,
             message: "Thank you for your feedback",
+            complaintId,
+            status: "Pending",
         });
     } catch (err) {
         console.error(err);
@@ -196,5 +199,101 @@ async function getFeedbackResponseByToken(req, res) {
     }
 }
 
+async function trackComplaintById(req, res) {
+    try {
 
-module.exports = { getFeedbackByIdforUser, submitFeedbackForUser, getHospitalAllFeedbackByIdforUser, getHospitalProfileForUser, getFeedbackResponseByToken };
+        const { complaintId } = req.params;
+
+        const complaint = await FEEDBACK_RESPONSE.findOne({
+            complaintId,
+            isDeleted: false,
+        })
+        .populate("feedbackId", "feedback_name")
+        .populate("hospitalId", "hospital_name");
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: "Complaint not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+
+            data: {
+                complaintId: complaint.complaintId,
+
+                status: complaint.status,
+
+                department: complaint.departmentAssigned,
+
+                adminRemarks: complaint.adminRemarks,
+
+                priority: complaint.priority,
+
+                submittedAt: complaint.createdAt,
+
+                hospitalName: complaint.hospitalId?.hospital_name,
+
+                feedbackForm: complaint.feedbackId?.feedback_name,
+            },
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        logError({
+            message: err.message,
+            stack: err.stack,
+            context: "trackComplaintById",
+        });
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+}
+
+async function trackComplaint(req, res) {
+    try {
+        const { complaintId } = req.params;
+
+        const complaint = await FEEDBACK_RESPONSE.findOne({
+            complaintId: complaintId,
+            isDeleted: false,
+        });
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: "Complaint not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                complaintId: complaint.complaintId,
+                status: complaint.status,
+                priority: complaint.priority,
+                departmentAssigned: complaint.departmentAssigned,
+                adminRemarks: complaint.adminRemarks,
+                submittedAt: complaint.createdAt,
+            },
+        });
+
+    } catch (err) {
+        console.log(err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+}
+
+
+module.exports = { getFeedbackByIdforUser, submitFeedbackForUser, getHospitalAllFeedbackByIdforUser, getHospitalProfileForUser, getFeedbackResponseByToken, trackComplaintById, trackComplaint };

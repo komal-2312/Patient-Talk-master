@@ -494,6 +494,7 @@ export default function FeedbackResponse() {
         body: formData,
       });
       const result = await response.json();
+      console.log(result);
 
       if (!response.ok || !result.success) {
         setSubmitError(result.message || "Submission failed. Please try again.");
@@ -502,8 +503,12 @@ export default function FeedbackResponse() {
       }
 
       setAnswers({});
-      showDialog("Thank you for your feedback!", () => {
-        navigate(`/user/HomeforFeedback/${feedback.hospitalId}`, { replace: true });
+      showDialog(`Complaint Submitted Successfully!
+        Complaint ID: ${result.complaintId}
+        Current Status: ${result.status}
+        Please save this Complaint ID to track your complaint later.`,
+          () => {
+            navigate(`/trackComplaint`, { replace: true });
       });
     } catch (err) {
       showDialog("Network error. Please try again.");

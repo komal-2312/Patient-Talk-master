@@ -443,5 +443,71 @@ async function changeTheme(req, res) {
   }
 }
 
+async function updateComplaintStatus(req, res) {
+  try {
+    const { id } = req.params;
 
-module.exports = { getFeedbacksByHospital, getHospitalProfile, changeHospitalName, createFeedback, getFeedbackById, updateFeedbackById, deleteFeedbackById, getFeedbackQR, getFeedbackResponses, DeleteResponseById, addFeedbackPerson, getFeedbackPersons, assignFeedbackPerson, changeTheme };
+    const { status, adminRemarks } = req.body;
+
+    const allowedStatuses = [
+      "Pending",
+      "Under Review",
+      "Assigned",
+      "In Progress",
+      "Resolved",
+      "Closed",
+      "Rejected",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status",
+      });
+    }
+
+    const complaint = await FEEDBACK_RESPONSE.findOneAndUpdate(
+      {
+        _id: id,
+        hospitalId: req.hospitalId,
+        isDeleted: false,
+      },
+      {
+        $set: {
+          status,
+          adminRemarks: adminRemarks || "",
+        },
+      },
+      { new: true }
+    );
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Complaint status updated",
+      data: complaint,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    logError({
+      message: err.message,
+      stack: err.stack,
+      context: "updateComplaintStatus",
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+module.exports = { getFeedbacksByHospital, getHospitalProfile, changeHospitalName, createFeedback, getFeedbackById, updateFeedbackById, deleteFeedbackById, getFeedbackQR, getFeedbackResponses, DeleteResponseById, addFeedbackPerson, getFeedbackPersons, assignFeedbackPerson, changeTheme, updateComplaintStatus };

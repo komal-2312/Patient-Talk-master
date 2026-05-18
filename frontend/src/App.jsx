@@ -29,6 +29,7 @@ import SecureFeedbackView from './pages/ResponceViewer'
 import changeTheme from './pages/changeTheme'
 import ChangeTheme from './pages/changeTheme'
 import QRScanner from './pages/QRScanner'
+import TrackComplaint from "./pages/TrackComplaint";
 
 const BACKENDURL = import.meta.env.VITE_BACKENDURL;
 
@@ -60,7 +61,7 @@ function App() {
         <Route path="/admin/assignperson" element={<AdminAssignPage />} />
         <Route path='mailPerson/getFeedbackResponsesByToken/:token' element={<SecureFeedbackView />} />
         <Route path='/admin/changeHospitaltheme' element={<ChangeTheme />} />
-        <Route path="/use/scanQR" element={<QRScanner />} />
+        <Route path="/trackComplaint" element={<TrackComplaint />} />
         {/*<Route path="/complaints" element={<ComplaintBoard />} />
         <Route path="/complaints/new" element={<ComplaintBuilder />} />
         <Route path="/complaints/:categoryId" element={<ComplaintForm />} />
