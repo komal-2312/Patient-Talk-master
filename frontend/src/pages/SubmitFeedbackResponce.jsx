@@ -8,6 +8,7 @@ import useVideoRecorder from "../components/VideoRecorder";
 import { applyTheme, loadThemeFromStorage } from "../themeUtils";
 import { useDialog } from "../components/DialogProvider";
 const BACKENDURL = import.meta.env.VITE_BACKENDURL;
+const HISTORY_KEY = "ptb_complaint_history";
 
 // ─── Answer type options ───
 const ANSWER_TYPES = [
@@ -375,6 +376,30 @@ export default function FeedbackResponse() {
   const [closedHospitalId, setClosedHospitalId] = useState(null);
   const { showDialog } = useDialog();
 
+  // ── Save complaint to localStorage history ──
+  // Uses catch(e) not bare catch{} — required by this project's Vite/Oxc version
+  const saveToLocalHistory = (complaintId, status, feedbackObj) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      const entry = {
+        complaintId,
+        status,
+        feedbackName: feedbackObj?.feedback_name || "Feedback",
+        hospitalName: "",
+        submittedAt: new Date().toISOString(),
+      };
+      // Prepend newest, deduplicate by complaintId, cap at 20
+      const updated = [
+        entry,
+        ...existing.filter((e) => e.complaintId !== complaintId),
+      ].slice(0, 20);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    } catch (e) {
+      // localStorage unavailable — silently ignore
+      console.warn("Could not save to history:", e);
+    }
+  };
+
   // Instant load theme on mount
   useEffect(() => {
     loadThemeFromStorage();
@@ -402,7 +427,6 @@ export default function FeedbackResponse() {
         setLoading(false);
       });
   }, [id]);
-
 
   // Load hospital-specific theme
   useEffect(() => {
@@ -453,7 +477,7 @@ export default function FeedbackResponse() {
   const totalQuestions = feedback?.questions?.length || 0;
   const progressPct = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
-  // Submit
+  // ── Submit ──
   const submitFeedback = async () => {
     if (!feedback) return;
 
@@ -494,7 +518,6 @@ export default function FeedbackResponse() {
         body: formData,
       });
       const result = await response.json();
-      console.log(result);
 
       if (!response.ok || !result.success) {
         setSubmitError(result.message || "Submission failed. Please try again.");
@@ -503,13 +526,16 @@ export default function FeedbackResponse() {
       }
 
       setAnswers({});
-      showDialog(`Complaint Submitted Successfully!
-        Complaint ID: ${result.complaintId}
-        Current Status: ${result.status}
-        Please save this Complaint ID to track your complaint later.`,
-          () => {
-            navigate(`/trackComplaint`, { replace: true });
-      });
+
+      // ── Save to localStorage BEFORE navigating away ──
+      saveToLocalHistory(result.complaintId, result.status, feedback);
+
+      showDialog(
+        `Complaint Submitted!\n\nComplaint ID: ${result.complaintId}\n\nYour complaint has been saved to your history. Tap OK to track it.`,
+        () => {
+          navigate(`/trackComplaint`, { replace: true });
+        }
+      );
     } catch (err) {
       showDialog("Network error. Please try again.");
     } finally {
@@ -543,12 +569,11 @@ export default function FeedbackResponse() {
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px' }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
               <h2 style={{ color: '#991b1b', margin: '0 0 8px 0', fontSize: '20px' }}>Notice</h2>
               <p style={{ color: '#b91c1c', margin: 0, fontSize: '16px', fontWeight: '500' }}>{fetchError}</p>
-              
-              <button 
-                 onClick={() => closedHospitalId ? navigate(`/user/HomeforFeedback/${closedHospitalId}`, { replace: true }) : navigate("/", { replace: true })}
-                 style={{ marginTop: '24px', padding: '10px 20px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', margin: '24px auto 0' }}>
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                 Back to Dashboard
+              <button
+                onClick={() => closedHospitalId ? navigate(`/user/HomeforFeedback/${closedHospitalId}`, { replace: true }) : navigate("/", { replace: true })}
+                style={{ marginTop: '24px', padding: '10px 20px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', margin: '24px auto 0' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                Back to Dashboard
               </button>
             </div>
           ) : (

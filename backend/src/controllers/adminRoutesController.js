@@ -224,11 +224,6 @@ async function getFeedbackQR(req, res) {
   });
 }
 
-
-
-
-
-
 async function getFeedbackResponses(req, res, next) {
   try {
     const feedbackId = req.params.id;
@@ -243,18 +238,44 @@ async function getFeedbackResponses(req, res, next) {
     if (!responses || responses.length === 0) {
       return res.status(415).json({
         success: false,
-        message: `No responses found for this feedback form. `,
+        message: "No responses found for this feedback form.",
       });
+    }
+
+    // ── Auto-escalation: upgrade priority if complaint is stale ──
+    const now = new Date();
+    const ESCALATION_HOURS = 48;
+    const escalationIds = [];
+
+    for (const r of responses) {
+      const ageHours = (now - new Date(r.createdAt)) / (1000 * 60 * 60);
+      const isStale = ageHours > ESCALATION_HOURS;
+      const isOpen = !["Resolved", "Closed", "Rejected"].includes(r.status);
+      const notAlreadyHigh = r.priority !== "High";
+
+      if (isStale && isOpen && notAlreadyHigh) {
+        escalationIds.push(r._id);
+        r.priority = "High"; // update in-memory so response is accurate
+      }
+    }
+
+    // Persist escalations in one bulk write — no per-document round trips
+    if (escalationIds.length > 0) {
+      await FEEDBACK_RESPONSE.updateMany(
+        { _id: { $in: escalationIds } },
+        { $set: { priority: "High" } }
+      );
     }
 
     return res.status(200).json({
       success: true,
       data: responses,
+      escalated: escalationIds.length, // useful for admin UI
     });
   } catch (err) {
     console.log(err);
     logError({ message: err.message, stack: err.stack, context: "getFeedbackResponses" });
-    // 👈 IMPORTANT
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
@@ -468,7 +489,7 @@ async function updateComplaintStatus(req, res) {
 
     const complaint = await FEEDBACK_RESPONSE.findOneAndUpdate(
       {
-        _id: id,
+        complaintId: id,
         hospitalId: req.hospitalId,
         isDeleted: false,
       },

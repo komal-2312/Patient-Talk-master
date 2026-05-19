@@ -20,7 +20,7 @@ export default function SecureFeedbackView() {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  
   // Instant load theme on mount
   useEffect(() => {
     loadThemeFromStorage();
@@ -41,6 +41,7 @@ export default function SecureFeedbackView() {
         }
 
         setResponse(data.data);
+        
 
         // Apply hospital-specific theme
         if (data.data.hospitalId) {
@@ -164,6 +165,8 @@ export default function SecureFeedbackView() {
     });
   }
 
+  
+
   return (
     <div className="sfv-page">
       {/* ─── Navbar ─── */}
@@ -270,6 +273,8 @@ export default function SecureFeedbackView() {
             <span className="sfv-summary-stat-label">Responses</span>
           </div>
         </div>
+
+        
 
         {/* ─── Answers ─── */}
         {response.responses.map((ans, idx) => {
