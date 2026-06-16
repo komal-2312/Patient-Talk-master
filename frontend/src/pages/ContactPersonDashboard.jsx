@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchWithTimeout, safeJsonParse, getUserFriendlyError } from "../utils/safeFetch";
 import "./AdminLayout.css";
 
 const BACKENDURL = import.meta.env.VITE_BACKENDURL;
@@ -76,23 +77,31 @@ export default function ContactPersonDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${BACKENDURL}/api/contact/myComplaints`, {
-          credentials: "include",
-        });
+        const res = await fetchWithTimeout(
+          `${BACKENDURL}/api/contact/myComplaints`,
+          { credentials: "include" },
+          10000
+        );
+        
         if (res.status === 412 || res.status === 401) {
           navigate("/contact/login", { replace: true });
           return;
         }
-        const data = await res.json();
+
+        const data = await safeJsonParse(res);
+        
         if (!data.success) {
           setError(data.message || "Failed to load complaints");
           return;
         }
-        setComplaints(data.data);
+        
+        setComplaints(data.data || []);
         setPerson(data.person);
         setAssignedFeedbacks(data.assignedFeedbacks || []);
-      } catch {
-        setError("Could not reach server");
+      } catch (err) {
+        console.error("Load complaints error:", err);
+        const friendlyError = getUserFriendlyError(err);
+        setError(friendlyError);
       } finally {
         setLoading(false);
       }
@@ -110,10 +119,15 @@ export default function ContactPersonDashboard() {
   }, [selected]);
 
   const handleLogout = async () => {
-    await fetch(`${BACKENDURL}/api/contact/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      await fetchWithTimeout(
+        `${BACKENDURL}/api/contact/logout`,
+        { method: "POST", credentials: "include" },
+        5000
+      );
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     navigate("/contact/login", { replace: true });
   };
 
@@ -121,21 +135,32 @@ export default function ContactPersonDashboard() {
     if (!selected) return;
     setSaving(true);
     setSaveMsg("");
+    
     try {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${BACKENDURL}/api/contact/complaint/${selected.complaintId}/status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ status: modalStatus, adminRemarks: modalRemarks }),
-        }
+        },
+        10000
       );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+
+      if (res.status === 412 || res.status === 401) {
+        setSaveMsg("Session expired. Please log in again.");
+        setTimeout(() => navigate("/contact/login", { replace: true }), 1500);
+        return;
+      }
+
+      const data = await safeJsonParse(res);
+      
+      if (!data.success) {
         setSaveMsg(data.message || "Failed to update");
         return;
       }
+
       // Update locally
       setComplaints(prev =>
         prev.map(c =>
@@ -145,9 +170,11 @@ export default function ContactPersonDashboard() {
         )
       );
       setSelected(prev => ({ ...prev, status: modalStatus, adminRemarks: modalRemarks }));
-      setSaveMsg("Updated successfully");
-    } catch {
-      setSaveMsg("Server error. Please try again.");
+      setSaveMsg("✓ Updated successfully");
+    } catch (err) {
+      console.error("Update status error:", err);
+      const friendlyError = getUserFriendlyError(err);
+      setSaveMsg(friendlyError);
     } finally {
       setSaving(false);
     }
@@ -489,7 +516,7 @@ export default function ContactPersonDashboard() {
               {saveMsg && (
                 <p style={{
                   margin: 0, fontSize: 13, fontWeight: 600, textAlign: "center",
-                  color: saveMsg.includes("success") ? "#15803d" : "#dc2626",
+                  color: saveMsg.includes("success") || saveMsg.includes("✓") ? "#15803d" : "#dc2626",
                 }}>
                   {saveMsg}
                 </p>

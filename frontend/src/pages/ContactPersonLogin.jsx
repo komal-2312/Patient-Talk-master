@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchWithTimeout, safeJsonParse, getUserFriendlyError } from "../utils/safeFetch";
 import "./Admin_Login.css";
 import "./AdminLayout.css";
 
@@ -23,21 +24,36 @@ export default function ContactPersonLogin() {
       return;
     }
     setLoading(true);
+    setError("");
+    
     try {
-      const res = await fetch(`${BACKENDURL}/api/contact/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email: form.email, password: form.password }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.message || "Invalid credentials");
+      const res = await fetchWithTimeout(
+        `${BACKENDURL}/api/contact/login`,
+        {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ email: form.email, password: form.password }),
+        },
+        10000 // 10 second timeout
+      );
+
+      // Parse response safely
+      const data = await safeJsonParse(res);
+      
+      if (!data.success) {
+        setError(data.message || "Login failed");
         return;
       }
+
+      // Success - navigate to dashboard
       navigate("/contact/dashboard", { replace: true });
-    } catch {
-      setError("Could not reach server. Please try again.");
+    } catch (err) {
+      console.error("Login error:", err);
+      const friendlyError = getUserFriendlyError(err);
+      setError(friendlyError);
     } finally {
       setLoading(false);
     }
