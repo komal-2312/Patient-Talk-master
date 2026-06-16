@@ -224,7 +224,7 @@ async function getFeedbackQR(req, res) {
   });
 }
 
-async function getFeedbackResponses(req, res, next) {
+async function getFeedbackResponses(req, res) {
   try {
     const feedbackId = req.params.id;
     const hospitalId = req.hospitalId;
@@ -261,11 +261,47 @@ async function getFeedbackResponses(req, res, next) {
 
     // Persist escalations in one bulk write — no per-document round trips
     if (escalationIds.length > 0) {
-      await FEEDBACK_RESPONSE.updateMany(
-        { _id: { $in: escalationIds } },
-        { $set: { priority: "High" } }
-      );
+    await FEEDBACK_RESPONSE.updateMany(
+      { _id: { $in: escalationIds } },
+      { $set: { priority: "High" } }
+    );
+
+    // Notify assigned contact persons
+    try {
+      const feedback = await FEEDBACK.findById(feedbackId)
+        .populate("assignedTo");
+
+      if (feedback?.assignedTo?.length) {
+        const emails = feedback.assignedTo
+          .map(p => p.email)
+          .filter(Boolean);
+
+        if (emails.length) {
+          const { sendMail } = require("../helpers/mailutility");
+
+          const html = `
+            <h2>⚠️ Complaints Auto-Escalated to High Priority</h2>
+            <p><b>Department:</b> ${feedback.feedback_name}</p>
+            <p><b>Number of complaints escalated:</b> ${escalationIds.length}</p>
+            <p>These complaints have been pending for more than 48 hours without resolution.</p>
+            <hr/>
+            <p style="color:#666; font-size:13px;">
+              Please log in to the PatientTalkback admin portal to review and update these complaints.
+            </p>
+          `;
+
+          await sendMail({
+            to: emails,
+            subject: `⚠️ ${escalationIds.length} complaint${escalationIds.length > 1 ? "s" : ""} escalated to High priority — ${feedback.feedback_name}`,
+            html,
+          });
+        }
+      }
+    } catch (mailErr) {
+      // Email failure should never break the main response
+      console.error("Escalation email failed:", mailErr.message);
     }
+  }
 
     return res.status(200).json({
       success: true,
@@ -325,36 +361,53 @@ async function DeleteResponseById(req, res) {
 }
 async function addFeedbackPerson(req, res) {
   try {
-    const { name, mobile, email } = req.body;
+    const { name, mobile, email, password } = req.body;
 
-    if (!name) {
-      return res.status(400).json({ success: false, message: "Name required" });
-    }
-    if (!mobile) {
-      return res.status(400).json({ success: false, message: "Mobile number required" });
-    }
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email required" });
-    }
-    if (!/^\d{10}$/.test(mobile)) {
-      return res.status(400).json({ success: false, message: "Invalid mobile number format" });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ success: false, message: "Invalid email format" });
-    }
+    if (!name) return res.status(400).json({ success: false, message: "Name required" });
+    if (!mobile) return res.status(400).json({ success: false, message: "Mobile number required" });
+    if (!email) return res.status(400).json({ success: false, message: "Email required" });
+    if (!password) return res.status(400).json({ success: false, message: "Password required" });
+    if (!/^\d{10}$/.test(mobile)) return res.status(400).json({ success: false, message: "Invalid mobile number format" });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ success: false, message: "Invalid email format" });
+    if (password.length < 6) return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
 
+    const bcrypt = require("bcryptjs");
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const person = await FEEDBACK_PERSON.create({
       hospitalId: req.hospitalId,
       name,
       mobile,
       email,
+      password: hashedPassword,
     });
 
-    res.status(201).json({
-      success: true,
-      data: person,
-    });
+    // Email the plain password to the contact person
+    try {
+      const { sendMail } = require("../helpers/mailutility");
+      const loginUrl = `${process.env.FRONTEND_URL}/contact/login`;
+      const html = `
+        <h2>👋 Welcome to PatientTalkback</h2>
+        <p>You have been added as a contact person for complaint management.</p>
+        <hr/>
+        <p><b>Login Email:</b> ${email}</p>
+        <p><b>Password:</b> ${password}</p>
+        <p><b>Login here:</b> <a href="${loginUrl}">${loginUrl}</a></p>
+        <hr/>
+        <p style="color:#666; font-size:13px;">
+          Please log in and update your password after first login.
+        </p>
+      `;
+      await sendMail({
+        to: [email],
+        subject: "Your PatientTalkback contact person login details",
+        html,
+      });
+    } catch (mailErr) {
+      console.error("Welcome email failed:", mailErr.message);
+    }
+
+    res.status(201).json({ success: true, data: person });
   } catch (err) {
     logError({ message: err.message, stack: err.stack, context: "addFeedbackPerson" });
     res.status(500).json({ success: false });
@@ -531,4 +584,84 @@ async function updateComplaintStatus(req, res) {
   }
 }
 
-module.exports = { getFeedbacksByHospital, getHospitalProfile, changeHospitalName, createFeedback, getFeedbackById, updateFeedbackById, deleteFeedbackById, getFeedbackQR, getFeedbackResponses, DeleteResponseById, addFeedbackPerson, getFeedbackPersons, assignFeedbackPerson, changeTheme, updateComplaintStatus };
+async function getAnalytics(req, res) {
+  try {
+    const hospitalId = req.hospitalId;
+
+    const responses = await FEEDBACK_RESPONSE.find({
+      hospitalId,
+      isDeleted: false,
+    }).select("status priority createdAt departmentAssigned");
+
+    const total = responses.length;
+    const resolved = responses.filter(r =>
+      ["Resolved", "Closed"].includes(r.status)
+    ).length;
+
+    // Average resolution time (only for resolved/closed)
+    const resolvedResponses = responses.filter(r =>
+      ["Resolved", "Closed"].includes(r.status)
+    );
+    const avgResolutionHours = resolvedResponses.length
+      ? Math.round(
+          resolvedResponses.reduce((sum, r) => {
+            return sum + (new Date(r.updatedAt) - new Date(r.createdAt));
+          }, 0) / resolvedResponses.length / (1000 * 60 * 60)
+        )
+      : null;
+
+    // By status
+    const byStatus = {};
+    responses.forEach(r => {
+      byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+    });
+
+    // By priority
+    const byPriority = {};
+    responses.forEach(r => {
+      byPriority[r.priority] = (byPriority[r.priority] || 0) + 1;
+    });
+
+    // By department
+    const byDepartment = {};
+    responses.forEach(r => {
+      const dept = r.departmentAssigned || "Unknown";
+      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
+    });
+
+    // Last 7 days daily count
+    const now = new Date();
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(now);
+      day.setDate(now.getDate() - i);
+      const label = day.toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+      const count = responses.filter(r => {
+        const d = new Date(r.createdAt);
+        return d.getFullYear() === day.getFullYear() &&
+               d.getMonth() === day.getMonth() &&
+               d.getDate() === day.getDate();
+      }).length;
+      last7.push({ label, count });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        total,
+        resolved,
+        resolutionRate: total ? Math.round((resolved / total) * 100) : 0,
+        avgResolutionHours,
+        byStatus,
+        byPriority,
+        byDepartment,
+        last7,
+      },
+    });
+  } catch (err) {
+    logError({ message: err.message, stack: err.stack, context: "getAnalytics" });
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
+module.exports = { getFeedbacksByHospital, getHospitalProfile, changeHospitalName, createFeedback, getFeedbackById, updateFeedbackById, deleteFeedbackById, getFeedbackQR, getFeedbackResponses, getAnalytics, DeleteResponseById, addFeedbackPerson, getFeedbackPersons, assignFeedbackPerson, changeTheme, updateComplaintStatus };

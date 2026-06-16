@@ -12,6 +12,7 @@ const feedbackPersonSchema = new mongoose.Schema(
     name: { type: String, required: true },
     mobile: { type: String },
     email: { type: String },
+    password: { type: String,required: false, select: false, },
 
     // Assigned feedback forms / departments
     assignedFeedbacks: [

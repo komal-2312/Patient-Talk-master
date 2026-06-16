@@ -18,6 +18,9 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const path = require("path");
 
+const contactPersonRoutes = require("./src/routes/contactPersonRoutes");
+
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
@@ -40,7 +43,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/logo", logoRoutes);
 app.use("/api/user", UserRouter);
 app.use("/api/superadmin", superAdminRoutes);
-
+app.use("/api/contact", contactPersonRoutes);
 
 
 app.use(notFoundHandler);

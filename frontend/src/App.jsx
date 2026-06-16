@@ -4,6 +4,7 @@ import './App.css'
 import Home from './pages/Home'
 import HospitalLanding from './pages/HospitalLanding'
 import FeedbackForm from './pages/FeedbackForm'
+import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminResponses from './pages/AdminResponses'
@@ -30,6 +31,8 @@ import changeTheme from './pages/changeTheme'
 import ChangeTheme from './pages/changeTheme'
 import QRScanner from './pages/QRScanner'
 import TrackComplaint from "./pages/TrackComplaint";
+import ContactPersonLogin from "./pages/ContactPersonLogin";
+import ContactPersonDashboard from "./pages/ContactPersonDashboard";
 
 const BACKENDURL = import.meta.env.VITE_BACKENDURL;
 
@@ -61,7 +64,10 @@ function App() {
         <Route path="/admin/assignperson" element={<AdminAssignPage />} />
         <Route path='mailPerson/getFeedbackResponsesByToken/:token' element={<SecureFeedbackView />} />
         <Route path='/admin/changeHospitaltheme' element={<ChangeTheme />} />
+        <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/trackComplaint" element={<TrackComplaint />} />
+        <Route path="/contact/login" element={<ContactPersonLogin />} />
+        <Route path="/contact/dashboard" element={<ContactPersonDashboard />} />
         {/*<Route path="/complaints" element={<ComplaintBoard />} />
         <Route path="/complaints/new" element={<ComplaintBuilder />} />
         <Route path="/complaints/:categoryId" element={<ComplaintForm />} />

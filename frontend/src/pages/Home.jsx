@@ -52,6 +52,14 @@ export default function Home() {
                 <img src={qrLogo} alt="QR Code" />
               </div>
             </button>
+
+            <p style={{ textAlign: "center", marginTop: 12, fontSize: 13 }}>
+            Contact person?{" "}
+            <span style={{ color: "var(--primary-color)", cursor: "pointer", fontWeight: 600 }}
+                  onClick={() => navigate("/contact/login")}>
+              Sign in here
+            </span>
+          </p>
           </div>
         </div>
       </div>

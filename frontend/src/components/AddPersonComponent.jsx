@@ -3,7 +3,7 @@ import React, { useState } from "react";
 const BACKENDURL = import.meta.env.VITE_BACKENDURL;
 
 export default function AddPersonModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({ name: "", mobile: "", email: "" });
+  const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -16,6 +16,9 @@ export default function AddPersonModal({ onClose, onAdd }) {
     
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) newErrors.email = "Invalid email address";
+
+    if (!form.password.trim()) newErrors.password = "Password is required";
+    else if (form.password.trim().length < 6) newErrors.password = "Password must be at least 6 characters";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -93,6 +96,20 @@ export default function AddPersonModal({ onClose, onAdd }) {
               />
             </div>
             {errors.email && <span style={{color: '#ef4444', fontSize: '12px', fontWeight: '600', marginLeft: '12px'}}>{errors.email}</span>}
+          </div>
+
+          <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+            <div className={`modern-input-wrapper ${errors.password ? 'has-error' : ''}`}>
+              <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v8"/></svg>
+              <input
+                type="password"
+                placeholder="Set a password (min 6 chars)"
+                value={form.password}
+                onChange={(e) => { setForm({ ...form, password: e.target.value }); setErrors({ ...errors, password: "" }) }}
+                style={errors.password ? { borderColor: '#ef4444' } : {}}
+              />
+            </div>
+            {errors.password && <span style={{color: '#ef4444', fontSize: '12px', fontWeight: '600', marginLeft: '12px'}}>{errors.password}</span>}
           </div>
         </div>
 
