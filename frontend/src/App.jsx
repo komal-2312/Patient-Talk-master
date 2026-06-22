@@ -45,6 +45,7 @@ function App() {
     <div className="app-root">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/use/scanQR" element={<QRScanner />} />
         {/* <Route path="/hospital/:hospitalId" element={<HospitalLanding />} />
         <Route path="/hospital/:hospitalId/feedback" element={<FeedbackForm />} />
         <Route path="/super-admin/login" element={<SuperAdminLogin />} /> */}
