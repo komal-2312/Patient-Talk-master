@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const FEEDBACK = require("../models/feedback");
 const { get } = require("mongoose");
 const HOSPITAL_DETAILS = require("../models/HOSPITAL_DETAILS");
-const { generateFeedbackQR } = require("../helpers/QRgenerator");
+const { generateFeedbackQR, generateHospitalQR } = require("../helpers/QRgenerator");
 const FEEDBACK_RESPONSE = require("../models/FeedbackResponses");
 const FEEDBACK_PERSON = require("../models/ContactPerson");
 const authMiddleware = require("../middleware/auth");
@@ -222,6 +222,28 @@ async function getFeedbackQR(req, res) {
     success: true,
     qr: qrBase64,
   });
+}
+
+async function getHospitalQR(req, res) {
+  try {
+    const hospitalId = req.hospitalId;
+
+    const hospital = await HOSPITAL_DETAILS.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ success: false, message: "Hospital not found" });
+    }
+
+    const { qrBase64 } = await generateHospitalQR(hospitalId);
+
+    return res.status(200).json({
+      success: true,
+      qr: qrBase64,
+    });
+  } catch (err) {
+    console.error("Error generating hospital QR:", err);
+    logError({ message: err.message, stack: err.stack, context: "getHospitalQR" });
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 }
 
 async function getFeedbackResponses(req, res) {
@@ -664,4 +686,4 @@ async function getAnalytics(req, res) {
   }
 }
 
-module.exports = { getFeedbacksByHospital, getHospitalProfile, changeHospitalName, createFeedback, getFeedbackById, updateFeedbackById, deleteFeedbackById, getFeedbackQR, getFeedbackResponses, getAnalytics, DeleteResponseById, addFeedbackPerson, getFeedbackPersons, assignFeedbackPerson, changeTheme, updateComplaintStatus };
+module.exports = { getFeedbacksByHospital, getHospitalProfile, changeHospitalName, createFeedback, getFeedbackById, updateFeedbackById, deleteFeedbackById, getFeedbackQR, getHospitalQR, getFeedbackResponses, getAnalytics, DeleteResponseById, addFeedbackPerson, getFeedbackPersons, assignFeedbackPerson, changeTheme, updateComplaintStatus };

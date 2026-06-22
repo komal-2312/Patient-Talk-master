@@ -137,6 +137,31 @@ export default function AdminDashboard() {
     }
   };
 
+  const downloadHospitalQR = async () => {
+    try {
+      const res = await fetch(`${BACKENDURL}/api/admin/hospital/qr`, {
+        credentials: "include",
+      });
+      if (res.status === 412 || res.status === 401) {
+        showDialog("Session expired. Please log in again.", () => {
+          navigate("/login", { replace: true });
+        });
+        return;
+      }
+      const data = await res.json();
+      if (!data.success) {
+        showDialog(data.message || "Failed to generate hospital QR code");
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = data.qr;
+      link.download = "hospital-qr.png";
+      link.click();
+    } catch (err) {
+      showDialog("Server error while generating QR code");
+    }
+  };
+
   if (loading) return <p className="center">Loading...</p>;
 
   return (
@@ -183,6 +208,17 @@ export default function AdminDashboard() {
             <button onClick={() => { navigate("/admin/changeHospitaltheme"); setMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}><path d="M12 21a9 9 0 0 1-8.6-6.1C3 13.6 4.3 12 6 12h2.5c.8 0 1.5.7 1.5 1.5v1a1.5 1.5 0 0 0 1.5 1.5h1a6 6 0 0 0 6-6C18.5 6 15.6 3 12 3a9 9 0 1 0 0 18z" /><circle cx="7" cy="8" r="1.5" fill="currentColor" /><circle cx="12" cy="7" r="1.5" fill="currentColor" /><circle cx="16" cy="10" r="1.5" fill="currentColor" /></svg>
               Theme Change
+            </button>
+            <button onClick={() => { downloadHospitalQR(); setMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <line x1="14" y1="14" x2="14" y2="21" />
+                <line x1="21" y1="14" x2="21" y2="21" />
+                <line x1="14" y1="17.5" x2="21" y2="17.5" />
+              </svg>
+              Hospital QR
             </button>
             <button onClick={() => { navigate("/admin/analytics"); setMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
