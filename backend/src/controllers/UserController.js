@@ -6,6 +6,48 @@ const { logFeedbackSubmission, logError } = require("../helpers/logger");
 
 const nodemailer = require('nodemailer'); //TEMP
 const { log } = require("console");
+
+// ── Lightweight keyword dictionary, fallback before real ML ──
+const DEPARTMENT_KEYWORDS = {
+  cleanliness: ["dirty", "clean", "smell", "trash", "garbage", "washroom", "toilet", "bathroom", "hygiene", "stink", "mess", "floor", "unclean"],
+  "emergency department": ["emergency", "urgent", "accident", "bleeding", "pain", "ambulance", "critical", "er", "casualty"],
+  pharmacy: ["medicine", "medication", "pharmacy", "drug", "prescription", "tablet", "pills", "dose"],
+  billing: ["bill", "billing", "payment", "charge", "invoice", "refund", "money", "overcharged", "insurance", "cost"],
+  "outpatient department": ["opd", "outpatient", "appointment", "consultation", "doctor", "checkup", "waiting"],
+  others: [],
+};
+
+function extractKeywordsFromQuestions(questions) {
+  if (!Array.isArray(questions)) return [];
+  const stopWords = new Set(["the", "a", "an", "is", "of", "for", "and", "to", "your", "you", "in", "on", "with", "was", "were", "did", "how"]);
+  const words = new Set();
+  questions.forEach(q => {
+    if (!q.text) return;
+    q.text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w))
+      .forEach(w => words.add(w));
+  });
+  return Array.from(words);
+}
+
+function scoreDepartment(complaintText, feedbackName, questions) {
+  const text = complaintText.toLowerCase();
+  const key = feedbackName.toLowerCase().trim();
+
+  const hardcoded = DEPARTMENT_KEYWORDS[key] || [];
+  const derived = extractKeywordsFromQuestions(questions);
+  const allKeywords = new Set([...hardcoded, ...derived]);
+
+  let score = 0;
+  allKeywords.forEach(kw => {
+    if (text.includes(kw)) score += 1;
+  });
+  return score;
+}
+
 async function getFeedbackByIdforUser(req, res) {
     const feedback = await FEEDBACK.findOne({
         _id: req.params.id,
@@ -134,6 +176,43 @@ async function getHospitalAllFeedbackByIdforUser(req, res) {
     }
 }
 
+async function suggestDepartmentForUser(req, res) {
+    try {
+        const { id } = req.params;
+        const { text } = req.query;
+
+        if (!text || !text.trim() || text.trim().length < 3) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        const feedbacks = await FEEDBACK.find({
+            hospitalId: id,
+            isActive: true,
+            isDeleted: false,
+        }).select("feedback_name questions logo_png");
+
+        const scored = feedbacks.map(f => ({
+            feedbackId: f._id,
+            feedback_name: f.feedback_name,
+            logo_png: f.logo_png,
+            score: scoreDepartment(text, f.feedback_name, f.questions),
+        }));
+
+        scored.sort((a, b) => b.score - a.score);
+
+        const matches = scored.filter(s => s.score > 0);
+
+        return res.status(200).json({
+            success: true,
+            data: matches,
+            topMatch: matches.length > 0 ? matches[0].feedbackId : null,
+        });
+    } catch (err) {
+        console.error("Error suggesting department:", err);
+        logError({ message: err.message, stack: err.stack, context: "suggestDepartmentForUser" });
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+}
 
 async function getHospitalProfileForUser(req, res) {
     try {
@@ -257,43 +336,4 @@ async function trackComplaintById(req, res) {
     }
 }
 
-async function trackComplaint(req, res) {
-    try {
-        const { complaintId } = req.params;
-
-        const complaint = await FEEDBACK_RESPONSE.findOne({
-            complaintId: complaintId,
-            isDeleted: false,
-        });
-
-        if (!complaint) {
-            return res.status(404).json({
-                success: false,
-                message: "Complaint not found",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                complaintId: complaint.complaintId,
-                status: complaint.status,
-                priority: complaint.priority,
-                departmentAssigned: complaint.departmentAssigned,
-                adminRemarks: complaint.adminRemarks,
-                submittedAt: complaint.createdAt,
-            },
-        });
-
-    } catch (err) {
-        console.log(err);
-
-        return res.status(500).json({
-            success: false,
-            message: "Server Error",
-        });
-    }
-}
-
-
-module.exports = { getFeedbackByIdforUser, submitFeedbackForUser, getHospitalAllFeedbackByIdforUser, getHospitalProfileForUser, getFeedbackResponseByToken, trackComplaintById, trackComplaint };
+module.exports = { getFeedbackByIdforUser, submitFeedbackForUser, getHospitalAllFeedbackByIdforUser, getHospitalProfileForUser, getFeedbackResponseByToken, trackComplaintById, suggestDepartmentForUser };

@@ -13,6 +13,11 @@ export default function PublicFeedbackHome() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ── new state for keyword suggestion ──
+  const [complaintText, setComplaintText] = useState("");
+  const [suggestedIds, setSuggestedIds] = useState([]);
+  const [suggesting, setSuggesting] = useState(false);
+
   // Instant load theme from storage to avoid flash
   useEffect(() => {
     loadThemeFromStorage();
@@ -45,6 +50,38 @@ export default function PublicFeedbackHome() {
         setLoading(false);
       });
   }, [hospitalId]);
+
+  useEffect(() => {
+    // Clear suggestions immediately when input is too short
+    if (complaintText.trim().length < 3) {
+      setSuggestedIds([]);
+      setSuggesting(false);
+      return;
+    }
+
+    setSuggesting(true);
+
+    const timer = setTimeout(() => {
+      fetch(`${BACKENDURL}/api/user/suggestDepartment/${hospitalId}?text=${encodeURIComponent(complaintText.trim())}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Suggest failed");
+          return res.json();
+        })
+        .then(data => {
+          if (data.success) {
+            setSuggestedIds(data.data.map(d => d.feedbackId));
+          } else {
+            setSuggestedIds([]);
+          }
+        })
+        .catch(() => setSuggestedIds([]))
+        .finally(() => setSuggesting(false));
+    }, 600); // slightly longer debounce
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [complaintText, hospitalId]);
 
   const getHospitalLogoSrc = () => {
     if (!hospital?.hospital_logo) return null;
@@ -164,6 +201,40 @@ export default function PublicFeedbackHome() {
               Select a feedback form to begin
             </div>
           )}
+
+          {feedbacks.length > 0 && (
+            <div style={{ width: "100%", maxWidth: 420, margin: "20px auto 0" }}>
+              <input
+                type="text"
+                placeholder="Or describe your issue — we'll suggest a department…"
+                value={complaintText}
+                onChange={(e) => setComplaintText(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 18px",
+                  borderRadius: 9999,
+                  border: "1.5px solid rgba(28,110,115,0.15)",
+                  background: "rgba(255,255,255,0.85)",
+                  fontSize: 14,
+                  color: "var(--text-main)",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "var(--primary-color)")}
+                onBlur={(e) => (e.target.style.borderColor = "rgba(28,110,115,0.15)")}
+              />
+              {suggesting && (
+                <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", margin: "8px 0 0" }}>
+                  Finding the best match…
+                </p>
+              )}
+              {!suggesting && suggestedIds.length > 0 && (
+                <p style={{ fontSize: 12, color: "var(--primary-color)", textAlign: "center", margin: "8px 0 0", fontWeight: 600 }}>
+                  Suggested department highlighted below
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         {/* ─── Feedback Cards Grid ─── */}
@@ -185,10 +256,16 @@ export default function PublicFeedbackHome() {
           </div>
         ) : (
           <div className="pfh-grid">
-            {feedbacks.map((f) => (
+            {feedbacks.map((f) => {
+              const isTopSuggestion = suggestedIds.length > 0 && String(suggestedIds[0]) === String(f._id);
+              return (
               <div
                 key={f._id}
                 className="pfh-card"
+                style={isTopSuggestion ? {
+                  border: "2px solid var(--primary-color)",
+                  boxShadow: "0 0 0 4px rgba(28,110,115,0.15), 0 20px 40px rgba(0,0,0,0.1)",
+                } : undefined}
                 onClick={() => navigate(`/feedback/${f._id}`, { replace: true })}
               >
                 <div className="pfh-card-img-wrapper">
@@ -209,7 +286,8 @@ export default function PublicFeedbackHome() {
                   </svg>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

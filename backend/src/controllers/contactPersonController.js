@@ -139,9 +139,75 @@ async function updateMyComplaintStatus(req, res) {
   }
 }
 
+async function changeMyPassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Current and new password are required" 
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "New password must be at least 6 characters" 
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "New password must be different from current password" 
+      });
+    }
+
+    const person = await FEEDBACK_PERSON.findById(req.contactPersonId)
+      .select("+password");
+      
+    if (!person) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Person not found" 
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, person.password);
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Current password is incorrect" 
+      });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    person.password = hashed;
+    await person.save();
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Password changed successfully" 
+    });
+
+  } catch (err) {
+    logError({ 
+      message: err.message, 
+      stack: err.stack, 
+      context: "changeMyPassword" 
+    });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
+  }
+}
+
 module.exports = {
   contactPersonLogin,
   contactPersonLogout,
   getMyComplaints,
   updateMyComplaintStatus,
+  changeMyPassword
 };
