@@ -4,6 +4,7 @@ const FEEDBACK_PERSON = require("../models/ContactPerson");
 const FEEDBACK_RESPONSE = require("../models/FeedbackResponses");
 const FEEDBACK = require("../models/feedback");
 const { logError } = require("../helpers/logger");
+const { sendMail } = require("../helpers/mailutility");
 
 async function contactPersonLogin(req, res) {
   try {
@@ -185,6 +186,30 @@ async function changeMyPassword(req, res) {
     const hashed = await bcrypt.hash(newPassword, 10);
     person.password = hashed;
     await person.save();
+
+    // Notify the contact person their password changed
+    try {
+      const loginUrl = `${process.env.FRONTEND_URL}/contact/login`;
+      const html = `
+        <h2>Your Password Was Changed</h2>
+        <p>This is a confirmation that the password for your PatientTalkback contact person account was just changed.</p>
+        <hr/>
+        <p><b>Account Email:</b> ${person.email}</p>
+        <p><b>Changed At:</b> ${new Date().toLocaleString()}</p>
+        <p><b>Login here:</b> <a href="${loginUrl}">${loginUrl}</a></p>
+        <hr/>
+        <p style="color:#c0392b; font-size:13px;">
+          If you did not request this change, please contact your hospital administrator immediately.
+        </p>
+      `;
+      await sendMail({
+        to: [person.email],
+        subject: "Your PatientTalkback password was changed",
+        html,
+      });
+    } catch (mailErr) {
+      console.error("Password change notification email failed:", mailErr.message);
+    }
 
     return res.status(200).json({ 
       success: true, 
