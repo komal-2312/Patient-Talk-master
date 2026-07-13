@@ -91,11 +91,39 @@ const feedbackResponseSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    aiPrediction: {
+  type: String,
+  enum: ["Genuine", "Suspicious", "Spam"],
+  default: null,
+},
+
+aiConfidence: {
+  type: Number,
+  default: null,
+},
+
+aiReason: {
+  type: String,
+  default: "",
+},
 
     isValidComplaint: {
       type: Boolean,
       default: true,
     },
+    mlConfidence: {
+    type: Number,
+    default: null,
+  },
+  mlReason: {
+    type: String,
+    default: "",
+},
+
+mlPredictedAt: {
+    type: Date,
+    default: null,
+},
 
     submittedAt: {
       type: Date,

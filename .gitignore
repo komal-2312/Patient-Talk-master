@@ -55,3 +55,12 @@ dist-ssr/
 
 # Vite temp files
 *.timestamp-*
+# ---------------------------------
+# Python / ML
+# ---------------------------------
+__pycache__/
+*.pyc
+*.pkl
+
+# Generated datasets
+backend/ml/datasets/*.csv

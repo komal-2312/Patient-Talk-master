@@ -3,7 +3,7 @@ const FEEDBACK_RESPONSE = require("../models/FeedbackResponses");
 const HOSPITAL_DETAILS = require("../models/HOSPITAL_DETAILS");
 const { verifyFeedbackAccessToken } = require("../helpers/feedbackmailaccesstoken");
 const { logFeedbackSubmission, logError } = require("../helpers/logger");
-
+const { analyzeComplaint } = require("../helpers/aiComplaintAnalyzer");
 const nodemailer = require('nodemailer'); //TEMP
 const { log } = require("console");
 async function getFeedbackByIdforUser(req, res) {
@@ -38,7 +38,6 @@ async function submitFeedbackForUser(req, res) {
 
         const feedbackId = req.params.id;
         const responses = JSON.parse(req.body.responses); // multipart
-
         const feedback = await FEEDBACK.findOne({
             _id: feedbackId,
             isActive: true,
@@ -69,29 +68,34 @@ async function submitFeedbackForUser(req, res) {
                 mediaUrl: fileMap[r.fileKey] || null,
             };
         });
+        const complaintText = formattedResponses.map(r => r.answerText).filter(Boolean).join(" ");
+        const aiResult = await analyzeComplaint(complaintText);
+        console.log("AI Result:", aiResult);
         const crypto = require("crypto");
-
         const token = crypto.randomBytes(32).toString("hex");
-
         const complaintId = `CMP-${Date.now()}`;
-
         const tokenExpiry = new Date();
         tokenExpiry.setDate(tokenExpiry.getDate() + 7); // valid for 7 days
+        await FEEDBACK_RESPONSE.create({feedbackId: feedback._id,
+    hospitalId: feedback.hospitalId,
+    complaintId: complaintId,
 
+    status: "Pending",
+    departmentAssigned: feedback.feedback_name,
+    priority: "Medium",
 
-        await FEEDBACK_RESPONSE.create({
-            feedbackId: feedback._id,
-            hospitalId: feedback.hospitalId,
-            complaintId: complaintId,
-            status: "Pending",
-            departmentAssigned: feedback.feedback_name,
-            priority: "Medium",
-            responses: formattedResponses,
-            accessToken: token,
-            tokenExpiresAt: tokenExpiry,
-            
-        });
+    responses: formattedResponses,
 
+    aiPrediction: aiResult.prediction,
+    aiConfidence: aiResult.confidence,
+    aiReason: aiResult.reason,
+
+    isValidComplaint:
+        aiResult.prediction !== "Spam",
+
+    accessToken: token,
+    tokenExpiresAt: tokenExpiry,
+});
         logFeedbackSubmission({ feedbackId: feedback._id, hospitalId: feedback.hospitalId });
 
         return res.status(200).json({
