@@ -49,6 +49,38 @@ SPAM_TEMPLATES = [
 "template":"test test test"
 },
 
+{
+"id":"SPM021",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"aaaaaaa bbbbbbb ccccccc"
+},
+
+{
+"id":"SPM022",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"qazwsxedc"
+},
+
+{
+"id":"SPM023",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"random random random"
+},
+
+{
+"id":"SPM024",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"%%%%%%%%%%%%"
+},
+
 # ---------------- VERY SHORT ----------------
 
 {
@@ -75,6 +107,38 @@ SPAM_TEMPLATES = [
 "template":"Poor"
 },
 
+{
+"id":"SPM025",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"Terrible"
+},
+
+{
+"id":"SPM026",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"Useless"
+},
+
+{
+"id":"SPM027",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"Very bad"
+},
+
+{
+"id":"SPM028",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"Not good"
+},
+
 # ---------------- WRONG DEPARTMENT ----------------
 
 {
@@ -91,6 +155,30 @@ SPAM_TEMPLATES = [
 "department":"ICU",
 "severity":"Low",
 "template":"The ICU charged me for parking."
+},
+
+{
+"id":"SPM029",
+"category":"Medicine",
+"department":"Parking",
+"severity":"Low",
+"template":"I went to the parking area to collect my medicine from the pharmacist."
+},
+
+{
+"id":"SPM030",
+"category":"Billing",
+"department":"Parking",
+"severity":"Low",
+"template":"The parking staff handled my hospital billing."
+},
+
+{
+"id":"SPM031",
+"category":"Radiology",
+"department":"Cafeteria",
+"severity":"Low",
+"template":"The cafeteria refused to perform my MRI scan."
 },
 
 # ---------------- OPERATING HOURS ----------------
@@ -119,6 +207,30 @@ SPAM_TEMPLATES = [
 "template":"Doctor consultation was unavailable at 2:00 AM."
 },
 
+{
+"id":"SPM032",
+"category":"Medicine",
+"department":"Pharmacy",
+"severity":"Low",
+"template":"The pharmacy was closed at 1:00 AM."
+},
+
+{
+"id":"SPM033",
+"category":"Billing",
+"department":"Billing",
+"severity":"Low",
+"template":"I tried to visit the billing counter at 12:30 AM but it was closed."
+},
+
+{
+"id":"SPM034",
+"category":"OPD",
+"department":"OPD",
+"severity":"Low",
+"template":"The outpatient department was closed at 3:00 AM."
+},
+
 # ---------------- IMPOSSIBLE ----------------
 
 {
@@ -137,6 +249,30 @@ SPAM_TEMPLATES = [
 "template":"The doctor treated me before I arrived."
 },
 
+{
+"id":"SPM035",
+"category":"Equipment",
+"department":"Radiology",
+"severity":"Low",
+"template":"The MRI machine disappeared and started moving through the hospital."
+},
+
+{
+"id":"SPM036",
+"category":"Medical Service",
+"department":"Ward",
+"severity":"Low",
+"template":"The doctor completed my treatment before I entered the hospital."
+},
+
+{
+"id":"SPM037",
+"category":"Medical Service",
+"department":"Ward",
+"severity":"Low",
+"template":"I was discharged before I was admitted."
+},
+
 # ---------------- DUPLICATE STYLE ----------------
 
 {
@@ -153,6 +289,22 @@ SPAM_TEMPLATES = [
 "department":"Unknown",
 "severity":"Low",
 "template":"Same issue same issue same issue."
+},
+
+{
+"id":"SPM038",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"This complaint is repeated again and again and again."
+},
+
+{
+"id":"SPM039",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"Same complaint repeated without any additional information."
 },
 
 # ---------------- EMPTY / RANDOM ----------------
@@ -179,6 +331,30 @@ SPAM_TEMPLATES = [
 "department":"Unknown",
 "severity":"Low",
 "template":"No complaint."
+},
+
+{
+"id":"SPM040",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"Nothing to say."
+},
+
+{
+"id":"SPM041",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"........ ?????? ........"
+},
+
+{
+"id":"SPM042",
+"category":"Spam",
+"department":"Unknown",
+"severity":"Low",
+"template":"No issue no issue no issue."
 }
 
 ]
