@@ -7,7 +7,7 @@ const feedbackPersonSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "HOSPITAL_DETAILS",
       required: true,
-    },
+      },
 
     name: { type: String, required: true },
     mobile: { type: String },

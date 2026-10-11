@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
 import { useDialog } from "../components/DialogProvider";
 import "./QRScanner.css";
 
@@ -8,8 +8,21 @@ export default function QRScanner() {
   const navigate = useNavigate();
   const { showDialog } = useDialog();
   const [scanResult, setScanResult] = useState(null);
+  const [cameraError, setCameraError] = useState("");
 
   useEffect(() => {
+
+    //check camera availability before rendering scanner
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (!devices || devices.length === 0) {
+          setCameraError("No camera found on this device. Please use your phone's camera app to scan the QR code instead.");
+        }
+      })
+      .catch(() => {
+        setCameraError("Camera access was blocked. Please allow camera permissions in your browser settings and reload this page.");
+    });
+
     // Configuration for the QR Scanner
     const scannerConfig = {
       fps: 10,
@@ -19,7 +32,7 @@ export default function QRScanner() {
     };
 
     const scanner = new Html5QrcodeScanner("reader", scannerConfig, false);
-
+    
     const onScanSuccess = (decodedText, decodedResult) => {
       // Pause scanner so we don't scan multiple times rapidly
       scanner.pause(true);
@@ -120,7 +133,11 @@ export default function QRScanner() {
           {/* HTML5 QR Scanner injects dom here */}
           <div id="reader"></div>
 
-          {!scanResult && (
+          {cameraError ? (
+            <div className="scanner-status">
+              <p style={{ color: "#dc2626" }}>{cameraError}</p>
+            </div>
+          ) : !scanResult && (
              <div className="scanner-status">
                <p><div className="scanner-loader"></div> Awaiting QR Code...</p>
              </div>

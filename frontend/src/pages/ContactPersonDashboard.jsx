@@ -69,6 +69,15 @@ export default function ContactPersonDashboard() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
+  // Password change modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+  });
+  const [passwordMsg, setPasswordMsg] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   // Filters
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterDept, setFilterDept] = useState("All");
@@ -82,19 +91,19 @@ export default function ContactPersonDashboard() {
           { credentials: "include" },
           10000
         );
-        
+
         if (res.status === 412 || res.status === 401) {
           navigate("/contact/login", { replace: true });
           return;
         }
 
         const data = await safeJsonParse(res);
-        
+
         if (!data.success) {
           setError(data.message || "Failed to load complaints");
           return;
         }
-        
+
         setComplaints(data.data || []);
         setPerson(data.person);
         setAssignedFeedbacks(data.assignedFeedbacks || []);
@@ -135,7 +144,7 @@ export default function ContactPersonDashboard() {
     if (!selected) return;
     setSaving(true);
     setSaveMsg("");
-    
+
     try {
       const res = await fetchWithTimeout(
         `${BACKENDURL}/api/contact/complaint/${selected.complaintId}/status`,
@@ -155,7 +164,7 @@ export default function ContactPersonDashboard() {
       }
 
       const data = await safeJsonParse(res);
-      
+
       if (!data.success) {
         setSaveMsg(data.message || "Failed to update");
         return;
@@ -177,6 +186,52 @@ export default function ContactPersonDashboard() {
       setSaveMsg(friendlyError);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      setPasswordMsg("Both fields are required");
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordMsg("");
+    try {
+      const res = await fetchWithTimeout(
+        `${BACKENDURL}/api/contact/changePassword`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(passwordForm),
+        },
+        10000
+      );
+
+      if (res.status === 412 || res.status === 401) {
+        setPasswordMsg("Session expired. Please log in again.");
+        setTimeout(() => navigate("/contact/login", { replace: true }), 1500);
+        return;
+      }
+
+      const data = await safeJsonParse(res);
+      if (!data.success) {
+        setPasswordMsg(data.message || "Failed to change password");
+        return;
+      }
+      setPasswordMsg("✓ Password changed successfully");
+      setPasswordForm({ currentPassword: "", newPassword: "" });
+      // Auto close after 2 seconds
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordMsg("");
+      }, 2000);
+    } catch (err) {
+      console.error("Change password error:", err);
+      const friendlyError = getUserFriendlyError(err);
+      setPasswordMsg(friendlyError);
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -230,13 +285,36 @@ export default function ContactPersonDashboard() {
             <span className="admin-brand-name">PatientTalkback</span>
           </div>
         </div>
-        <div className="admin-nav-right">
+        <div className="admin-nav-right" style={{ display: "flex", gap: 8 }}>
+          <button
+            className="admin-back-btn"
+            onClick={() => {
+              setShowPasswordModal(true);
+              setPasswordMsg("");
+              setPasswordForm({ currentPassword: "", newPassword: "" });
+            }}
+            title="Change Password"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Password
+          </button>
           <button
             className="admin-back-btn"
             onClick={handleLogout}
             style={{ color: "#e55353", borderColor: "rgba(229,83,83,0.2)" }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
             Logout
           </button>
         </div>
@@ -416,7 +494,7 @@ export default function ContactPersonDashboard() {
         )}
       </div>
 
-      {/* ── Manage Modal ── */}
+      {/* ── Manage Complaint Modal ── */}
       {selected && (
         <div
           style={{
@@ -548,6 +626,179 @@ export default function ContactPersonDashboard() {
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Password Change Modal (independent of Manage modal) ── */}
+      {showPasswordModal && (
+        <div
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(15,23,42,0.7)",
+            backdropFilter: "blur(12px)",
+            display: "flex", alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000, padding: 20,
+          }}
+          onClick={() => setShowPasswordModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff", borderRadius: 24,
+              width: "100%", maxWidth: 420,
+              boxShadow: "0 40px 100px -20px rgba(0,0,0,0.3)",
+              overflow: "hidden",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "24px 28px",
+              borderBottom: "1px solid #f1f5f9",
+              display: "flex", justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700,
+                  color: "#1e293b" }}>
+                  Change Password
+                </h3>
+                <p style={{ margin: "4px 0 0", fontSize: 13,
+                  color: "#64748b" }}>
+                  Update your login password
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                style={{
+                  width: 32, height: 32, borderRadius: "50%",
+                  border: "none", background: "#f1f5f9",
+                  cursor: "pointer", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  color: "#64748b",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5"
+                  strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "24px 28px",
+              display: "flex", flexDirection: "column", gap: 16 }}>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700,
+                  color: "#64748b", textTransform: "uppercase",
+                  letterSpacing: "0.04em", display: "block",
+                  marginBottom: 6 }}>
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter current password"
+                  value={passwordForm.currentPassword}
+                  onChange={e => setPasswordForm(prev => ({
+                    ...prev, currentPassword: e.target.value
+                  }))}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    border: "2px solid rgba(28,110,115,0.15)",
+                    borderRadius: 10, fontSize: 14,
+                    background: "#fff", outline: "none",
+                    color: "#1e293b", fontFamily: "inherit",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s",
+                  }}
+                  onFocus={e => e.target.style.borderColor =
+                    "var(--primary-color, #1c6e73)"}
+                  onBlur={e => e.target.style.borderColor =
+                    "rgba(28,110,115,0.15)"}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700,
+                  color: "#64748b", textTransform: "uppercase",
+                  letterSpacing: "0.04em", display: "block",
+                  marginBottom: 6 }}>
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter new password (min 6 chars)"
+                  value={passwordForm.newPassword}
+                  onChange={e => setPasswordForm(prev => ({
+                    ...prev, newPassword: e.target.value
+                  }))}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    border: "2px solid rgba(28,110,115,0.15)",
+                    borderRadius: 10, fontSize: 14,
+                    background: "#fff", outline: "none",
+                    color: "#1e293b", fontFamily: "inherit",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s",
+                  }}
+                  onFocus={e => e.target.style.borderColor =
+                    "var(--primary-color, #1c6e73)"}
+                  onBlur={e => e.target.style.borderColor =
+                    "rgba(28,110,115,0.15)"}
+                />
+              </div>
+
+              {passwordMsg && (
+                <p style={{
+                  margin: 0, fontSize: 13, fontWeight: 600,
+                  textAlign: "center",
+                  color: passwordMsg.includes("✓") ? "#15803d" : "#dc2626",
+                  padding: "8px 12px", borderRadius: 8,
+                  background: passwordMsg.includes("✓")
+                    ? "rgba(34,197,94,0.08)"
+                    : "rgba(239,68,68,0.08)",
+                }}>
+                  {passwordMsg}
+                </p>
+              )}
+
+              <button
+                onClick={handleChangePassword}
+                disabled={passwordLoading}
+                style={{
+                  padding: "13px", borderRadius: 12, border: "none",
+                  background: "var(--primary-color, #1c6e73)",
+                  color: "#fff",
+                  fontWeight: 700, fontSize: 15,
+                  cursor: passwordLoading ? "not-allowed" : "pointer",
+                  opacity: passwordLoading ? 0.7 : 1,
+                  fontFamily: "inherit",
+                  boxShadow: "0 4px 12px rgba(28,110,115,0.2)",
+                }}
+              >
+                {passwordLoading ? "Updating…" : "Update Password"}
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: "16px 28px",
+              borderTop: "1px solid #f1f5f9" }}>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                style={{
+                  width: "100%", padding: "12px", borderRadius: 12,
+                  border: "none", background: "#f1f5f9", color: "#475569",
+                  fontWeight: 700, fontSize: 14, cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>

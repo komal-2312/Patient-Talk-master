@@ -26,9 +26,13 @@ const authMiddleware = (req, res, next) => {
     console.log("Hospital ID set:", req.hospitalId);
     next();
      // 👈 IMPORTANT
-    })
-
-  
+    }).catch((dbError) => {
+      console.error("Auth DB lookup failed:", dbError);
+      return res.status(500).json({
+        success: false,
+        message: "Server error during authentication",
+      });
+    });  
 
   } catch (error) {
     return res.status(412).json({
