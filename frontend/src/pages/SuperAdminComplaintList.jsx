@@ -189,6 +189,59 @@ export default function SuperAdminComplaintList() {
                       </h2>
                     </div>
 
+                    {selectedResponse && (
+                        <div
+                            className="admin-glass-card"
+                            style={{
+                                flex: '1 1 100%',
+                                padding: '20px 24px',
+                                marginBottom: '20px',
+                                borderLeft: '4px solid var(--primary-color)'
+                            }}
+                        >
+                            <h2 style={{
+                                margin: '0 0 14px',
+                                fontSize: '16px',
+                                color: 'var(--text-main)'
+                            }}>
+                                AI Complaint Analysis
+                            </h2>
+
+                                                        {selectedResponse.aiPrediction ? (
+                                <span style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    background:
+                                        selectedResponse.aiPrediction === 'Genuine'
+                                            ? '#e8f5e9'
+                                            : selectedResponse.aiPrediction === 'Suspicious'
+                                                ? '#fff3e0'
+                                                : '#ffebee',
+                                    color:
+                                        selectedResponse.aiPrediction === 'Genuine'
+                                            ? '#2e7d32'
+                                            : selectedResponse.aiPrediction === 'Suspicious'
+                                                ? '#e65100'
+                                                : '#c62828'
+                                }}>
+                                    {selectedResponse.aiPrediction}
+                                </span>
+                            ) : (
+                                <p style={{
+                                    margin: 0,
+                                    fontSize: '14px',
+                                    lineHeight: 1.6,
+                                    color: 'var(--text-muted)'
+                                }}>
+                                    AI analysis is unavailable for this response.
+                                    It may have been submitted before AI analysis was enabled.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {selectedResponse ? (
                         <div style={{ padding: '24px', maxHeight: '600px', overflowY: 'auto' }}>
                             {selectedResponse.responses && selectedResponse.responses.map((r, i) => {

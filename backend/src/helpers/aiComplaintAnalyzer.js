@@ -1,37 +1,32 @@
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
 const path = require("path");
 
 function analyzeComplaint(complaintText) {
-    return new Promise((resolve, reject) => {
+return new Promise((resolve, reject) => {
+const mlDirectory = path.resolve(__dirname, "../../ml");
+const scriptPath = path.join(mlDirectory, "analyze_complaint.py");
 
-        const scriptPath = path.join(
-            __dirname,
-            "../../../ml/analyze_complaint.py"
-        );
-
-        const command = `python "${scriptPath}" "${complaintText.replace(/"/g, '\\"')}"`;
-
-        exec(command, (error, stdout, stderr) => {
-
+    execFile(
+        "python",
+        [scriptPath, complaintText],
+        { cwd: mlDirectory },
+        (error, stdout, stderr) => {
             if (error) {
-                console.error("AI Error:", error);
+                console.error("AI Error:", error.message);
+                if (stderr) console.error(stderr);
                 return reject(error);
             }
 
-            if (stderr) {
-                console.error(stderr);
-            }
             try {
-                const result = JSON.parse(stdout.trim());
-                resolve(result);
+                resolve(JSON.parse(stdout.trim()));
             } catch (err) {
-                console.error("JSON Parse Error:", stdout);
+                console.error("AI JSON Parse Error:", stdout);
                 reject(err);
             }
-        });
-    });
+        }
+    );
+});
+
 }
 
-module.exports = {
-    analyzeComplaint
-};
+module.exports = { analyzeComplaint };
